@@ -1,0 +1,33 @@
+{
+  "name": "foursquare",
+  "version": "0.0.0",
+  "description": "The best gosh darn Foursquare JavaScript Client",
+  "main": "src/foursquare.coffee",
+  "dependencies": {
+    "mocha": "*",
+    "chai": "*",
+    "grunt": "*",
+    "grunt-contrib-watch": "*",
+    "grunt-contrib-coffee": "*",
+    "grunt-contrib-uglify": "*",
+    "grunt-contrib-copy": "*",
+    "grunt-browserify": "*",
+    "grunt-shell": "*",
+    "browserify": "*",
+    "express": "*"
+  },
+  "scripts": {
+    "test": "mocha $(find test -name '*.js')"
+  },
+  "repository": {
+    "type": "git",
+    "url": "benastan/foursquare-component"
+  },
+  "keywords": [
+    "foursquare",
+    "javascript",
+    "client"
+  ],
+  "author": "Ben Bergstein",
+  "license": "BSD"
+}
