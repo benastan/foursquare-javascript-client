@@ -1,14 +1,28 @@
+Utilities = require('./utilities')
+User = require('./user')
+
 class Client
 
-  authenticate: ->
+  authenticate: (success, error) ->
 
     @authentication = new @Authentication(client: @)
 
+      .success =>
+
+          @currentUser = @User.new(client: this, userId: 'self')
+
+          @currentUser
+
+            .get()
+
+            .done( => success() )
+
   Authentication: require './authentication'
 
-  constructor: ({@client_id, @redirect_url}) ->
+  constructor: ({@clientId, @redirectUrl, @accessToken}) ->
 
-  User: require './user'
-  utilities: require './utilities'
+    @User = new User(client: this)
+
+  utilities: new Utilities
 
 module.exports = Client

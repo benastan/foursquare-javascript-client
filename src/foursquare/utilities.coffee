@@ -1,18 +1,14 @@
 class Utitlities
 
-  hash_params: ->
-    @_hash_params ||= @parse_hash_params(window)
+  parseHashString: (rawHash) ->
 
-  parse_hash_params: (_window) ->
+    processedHash = {}
 
-    raw_hash = _window.document.location.hash
+    for hashPair in paramsAry = rawHash.split('&')
 
-    processed_hash = {}
+      [key, val] = hashPair.split('=')
+      processedHash[key] = val
 
-    for hash_pair in params_ary = raw_hash.substr(1).split('&')
-      [key, val] = hash_pair.split('=')
-      processed_hash[key] = val
-
-    processed_hash
+    processedHash
 
 module.exports = Utitlities

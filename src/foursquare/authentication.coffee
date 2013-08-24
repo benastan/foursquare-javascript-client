@@ -1,36 +1,53 @@
-authentication_window = false
+authenticationWindow = false
 Timeout = 30000
 
 class Authentication
 
+  success: (callback) ->
+
+    @success = callback
+
+    @
+
+  error: (callback) ->
+
+    @error = callback
+
+    @
+
   constructor: ({@client, @timeout}) ->
 
-    access_token = @client.utilities.hash_params().access_token
+    @popup()
 
-    if access_token
+  popup: ->
 
-      @client.access_token = access_token
+    if authenticationWindow && +new Date - authenticationBeganAt > Timeout
 
-      #@client.current_user = 
+      @error()
 
-    else
+    else if authenticationWindow
 
-      if authentication_window && +new Date - auth_began > auth_timeout
+      hashParams = @client.utilities.parseHashString(authenticationWindow.document.location.hash.substr(1))
 
-        # Timeout.
+      if hashParams.access_token
 
-      else if authentication_window && authentication_window instanceof Window
-
-        hash_params = @client.utilities.parse_hash_params(authentication_window)
-        authentication_window.close()
+        authenticationWindow.close()
+        @client.accessToken = @accessToken = hashParams.access_token
+        authenticationWindow = false
+        @success()
 
       else
 
-        authentication_window = window.open(@url())
-        authentication_began_at = +new Date
-        setTimeout(arguments.callee(), 100)
+        setTimeout((=> @popup()), 100)
+
+    else
+
+      authenticationWindow = window.open(@url())
+      authenticationBeganAt = +new Date
+      setTimeout((=> @popup()), 100)
 
    url: ->
 
-     "https://foursquare.com/oauth2/authenticate?client_id=#{@client.client_id}&response_type=token&redirect_uri=#{@client.redirect_url}"
+     "https://foursquare.com/oauth2/authenticate?client_id=#{@client.clientId}&response_type=token&redirect_uri=#{@client.redirectUrl}"
 
+module.exports = Authentication

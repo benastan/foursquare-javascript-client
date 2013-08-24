@@ -2,14 +2,27 @@ Base = require './base'
 
 class User extends Base
 
-  constructor: ({@client, @user_id}) ->
+  baseParams: ->
 
-    super(client: @client)
+    [ 'users' ]
 
-    @get()
+  leaderboard: -> @get('leaderboard')
 
-  base_params: ->
+  requests: -> @get('requests')
 
-    [ 'users', @user_id ]
+  search: (data) -> @get('search', data)
+
+class User::Instance extends User
+
+  constructor: ({client, @userId}) ->
+
+    super(client: client)
+
+  baseParams: ->
+
+    super().concat([ @userId ])
+
+for method in 'badges checkins friends lists mayorships photos tips venuehistory'.split(' ')
+  ((endpoint) -> User::Instance.prototype[endpoint] = (data) -> @get(endpoint, data))(method)
 
 module.exports = User

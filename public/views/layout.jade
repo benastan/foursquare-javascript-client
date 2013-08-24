@@ -15,4 +15,8 @@ html
     script(type='text/javascript').
       mocha.setup('bdd')
       mocha.globals(['jQuery', 'Foursquare']);
-      mocha.run();
+      if (window.mochaPhantomJS) {
+        mochaPhantomJS.run();
+      } else {
+        mocha.run();
+      }

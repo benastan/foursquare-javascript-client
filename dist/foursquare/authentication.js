@@ -1,37 +1,60 @@
 (function() {
-  var Authentication, Timeout, authentication_window;
+  var Authentication, Timeout, authenticationWindow;
 
-  authentication_window = false;
+  authenticationWindow = false;
 
   Timeout = 30000;
 
   Authentication = (function() {
-    function Authentication(_arg) {
-      var access_token, authentication_began_at, hash_params;
-      this.client = _arg.client, this.timeout = _arg.timeout;
-      access_token = this.client.utilities.hash_params().access_token;
-      if (access_token) {
-        this.client.access_token = access_token;
-      } else {
-        if (authentication_window && +(new Date) - auth_began > auth_timeout) {
+    Authentication.prototype.success = function(callback) {
+      this.success = callback;
+      return this;
+    };
 
-        } else if (authentication_window && authentication_window instanceof Window) {
-          hash_params = this.client.utilities.parse_hash_params(authentication_window);
-          authentication_window.close();
-        } else {
-          authentication_window = window.open(this.url());
-          authentication_began_at = +(new Date);
-          setTimeout(arguments.callee(), 100);
-        }
-      }
+    Authentication.prototype.error = function(callback) {
+      this.error = callback;
+      return this;
+    };
+
+    function Authentication(_arg) {
+      this.client = _arg.client, this.timeout = _arg.timeout;
+      this.popup();
     }
 
+    Authentication.prototype.popup = function() {
+      var authenticationBeganAt, hashParams,
+        _this = this;
+      if (authenticationWindow && +(new Date) - authenticationBeganAt > Timeout) {
+        return this.error();
+      } else if (authenticationWindow) {
+        hashParams = this.client.utilities.parseHashString(authenticationWindow.document.location.hash.substr(1));
+        if (hashParams.access_token) {
+          authenticationWindow.close();
+          this.client.accessToken = this.accessToken = hashParams.access_token;
+          authenticationWindow = false;
+          return this.success();
+        } else {
+          return setTimeout((function() {
+            return _this.popup();
+          }), 100);
+        }
+      } else {
+        authenticationWindow = window.open(this.url());
+        authenticationBeganAt = +(new Date);
+        return setTimeout((function() {
+          return _this.popup();
+        }), 100);
+      }
+    };
+
     Authentication.prototype.url = function() {
-      return "https://foursquare.com/oauth2/authenticate?client_id=" + this.client.client_id + "&response_type=token&redirect_uri=" + this.client.redirect_url;
+      return "https://foursquare.com/oauth2/authenticate?client_id=" + this.client.clientId + "&response_type=token&redirect_uri=" + this.client.redirectUrl;
     };
 
     return Authentication;
 
   })();
+
+  module.exports = Authentication;
 
 }).call(this);

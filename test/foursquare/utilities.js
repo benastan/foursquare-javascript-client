@@ -11,15 +11,15 @@ describe(Utilities, function() {
   after(function() {
     utilities = false;
   });
-  describe('#hash_params', function() {
+  describe('#parseHashString', function() {
+    var hash;
     before(function() {
-      if (!  global.document) { global.document = {}; }
-      if (! global.document.location) { global.document.location = {}; }
-      hash = global.document.location.hash;
-      global.document.location.hash = hash === '' ? '#param=something' : hash;
+      hash = 'param=something&blah=booo';
     });
     it('processes the hash', function() {
-      utilities.hash_params().param.should.equal('something');
+      var params = utilities.parseHashString(hash);
+      params.param.should.equal('something');
+      params.blah.should.equal('booo');
     });
   });
 });

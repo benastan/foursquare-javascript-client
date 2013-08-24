@@ -20,40 +20,63 @@
 
 },{"./foursquare/client":4,"./foursquare/utilities":6}],2:[function(require,module,exports){
 (function() {
-  var Authentication, Timeout, authentication_window;
+  var Authentication, Timeout, authenticationWindow;
 
-  authentication_window = false;
+  authenticationWindow = false;
 
   Timeout = 30000;
 
   Authentication = (function() {
-    function Authentication(_arg) {
-      var access_token, authentication_began_at, hash_params;
-      this.client = _arg.client, this.timeout = _arg.timeout;
-      access_token = this.client.utilities.hash_params().access_token;
-      if (access_token) {
-        this.client.access_token = access_token;
-      } else {
-        if (authentication_window && +(new Date) - auth_began > auth_timeout) {
+    Authentication.prototype.success = function(callback) {
+      this.success = callback;
+      return this;
+    };
 
-        } else if (authentication_window && authentication_window instanceof Window) {
-          hash_params = this.client.utilities.parse_hash_params(authentication_window);
-          authentication_window.close();
-        } else {
-          authentication_window = window.open(this.url());
-          authentication_began_at = +(new Date);
-          setTimeout(arguments.callee(), 100);
-        }
-      }
+    Authentication.prototype.error = function(callback) {
+      this.error = callback;
+      return this;
+    };
+
+    function Authentication(_arg) {
+      this.client = _arg.client, this.timeout = _arg.timeout;
+      this.popup();
     }
 
+    Authentication.prototype.popup = function() {
+      var authenticationBeganAt, hashParams,
+        _this = this;
+      if (authenticationWindow && +(new Date) - authenticationBeganAt > Timeout) {
+        return this.error();
+      } else if (authenticationWindow) {
+        hashParams = this.client.utilities.parseHashString(authenticationWindow.document.location.hash.substr(1));
+        if (hashParams.access_token) {
+          authenticationWindow.close();
+          this.client.accessToken = this.accessToken = hashParams.access_token;
+          authenticationWindow = false;
+          return this.success();
+        } else {
+          return setTimeout((function() {
+            return _this.popup();
+          }), 100);
+        }
+      } else {
+        authenticationWindow = window.open(this.url());
+        authenticationBeganAt = +(new Date);
+        return setTimeout((function() {
+          return _this.popup();
+        }), 100);
+      }
+    };
+
     Authentication.prototype.url = function() {
-      return "https://foursquare.com/oauth2/authenticate?client_id=" + this.client.client_id + "&response_type=token&redirect_uri=" + this.client.redirect_url;
+      return "https://foursquare.com/oauth2/authenticate?client_id=" + this.client.clientId + "&response_type=token&redirect_uri=" + this.client.redirectUrl;
     };
 
     return Authentication;
 
   })();
+
+  module.exports = Authentication;
 
 }).call(this);
 
@@ -65,29 +88,56 @@
   Base = (function() {
     function Base(_arg) {
       this.client = _arg.client;
+      this.attributes = {};
     }
+
+    Base.prototype.get = function() {
+      var urlArgs;
+      urlArgs = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      return this.perform.apply(this, ['get'].concat(urlArgs));
+    };
+
+    Base.prototype["new"] = function(attributes) {
+      attributes || (attributes = {});
+      attributes.client = this.client;
+      return new this.Instance(attributes);
+    };
+
+    Base.prototype.perform = function() {
+      var ajaxOptions, data, type, urlArgs, _i,
+        _this = this;
+      type = arguments[0], urlArgs = 3 <= arguments.length ? __slice.call(arguments, 1, _i = arguments.length - 1) : (_i = 1, []), data = arguments[_i++];
+      if (typeof data === 'string') {
+        urlArgs.push(data);
+        data = void 0;
+      }
+      ajaxOptions = {
+        type: type,
+        url: this.url.apply(this, this.baseParams().concat(urlArgs)),
+        data: data
+      };
+      return $.ajax(ajaxOptions).done(function(rsp) {
+        var key, val, _ref, _results;
+        _ref = rsp.response.user;
+        _results = [];
+        for (key in _ref) {
+          val = _ref[key];
+          _results.push(_this.attributes[key] = val);
+        }
+        return _results;
+      });
+    };
+
+    Base.prototype.post = function() {
+      var urlArgs;
+      urlArgs = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      return this.perform.apply(this, ['post'].concat(urlArgs));
+    };
 
     Base.prototype.url = function() {
       var args;
       args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-      return "" + (['https:/', 'api.foursquare.com', 'v2'].concat(args).join('/')) + "?oauth_token=" + this.access_token;
-    };
-
-    Base.prototype.perform = function() {
-      var type, url_args;
-      type = arguments[0], url_args = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
-    };
-
-    Base.prototype.post = function() {
-      var url_args;
-      url_args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-      return this.perform.apply(this, ['post'].concat(url_args));
-    };
-
-    Base.prototype.get = function() {
-      var url_args;
-      url_args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-      return this.perform.apply(this, ['get'].concat(url_args));
+      return "" + (['https:/', 'api.foursquare.com', 'v2'].concat(args).join('/')) + "?oauth_token=" + this.client.accessToken;
     };
 
     return Base;
@@ -100,24 +150,38 @@
 
 },{}],4:[function(require,module,exports){
 (function() {
-  var Client;
+  var Client, User, Utilities;
+
+  Utilities = require('./utilities');
+
+  User = require('./user');
 
   Client = (function() {
-    Client.prototype.authenticate = function() {
+    Client.prototype.authenticate = function(success, error) {
+      var _this = this;
       return this.authentication = new this.Authentication({
         client: this
+      }).success(function() {
+        _this.currentUser = _this.User["new"]({
+          client: _this,
+          userId: 'self'
+        });
+        return _this.currentUser.get().done(function() {
+          return success();
+        });
       });
     };
 
     Client.prototype.Authentication = require('./authentication');
 
     function Client(_arg) {
-      this.client_id = _arg.client_id, this.redirect_url = _arg.redirect_url;
+      this.clientId = _arg.clientId, this.redirectUrl = _arg.redirectUrl, this.accessToken = _arg.accessToken;
+      this.User = new User({
+        client: this
+      });
     }
 
-    Client.prototype.User = require('./user');
-
-    Client.prototype.utilities = require('./utilities');
+    Client.prototype.utilities = new Utilities;
 
     return Client;
 
@@ -129,7 +193,7 @@
 
 },{"./authentication":2,"./user":5,"./utilities":6}],5:[function(require,module,exports){
 (function() {
-  var Base, User,
+  var Base, User, method, _fn, _i, _len, _ref, _ref1,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -138,21 +202,60 @@
   User = (function(_super) {
     __extends(User, _super);
 
-    function User(_arg) {
-      this.client = _arg.client, this.user_id = _arg.user_id;
-      User.__super__.constructor.call(this, {
-        client: this.client
-      });
-      this.get();
+    function User() {
+      _ref = User.__super__.constructor.apply(this, arguments);
+      return _ref;
     }
 
-    User.prototype.base_params = function() {
-      return ['users', this.user_id];
+    User.prototype.baseParams = function() {
+      return ['users'];
+    };
+
+    User.prototype.leaderboard = function() {
+      return this.get('leaderboard');
+    };
+
+    User.prototype.requests = function() {
+      return this.get('requests');
+    };
+
+    User.prototype.search = function(data) {
+      return this.get('search', data);
     };
 
     return User;
 
   })(Base);
+
+  User.prototype.Instance = (function(_super) {
+    __extends(Instance, _super);
+
+    function Instance(_arg) {
+      var client;
+      client = _arg.client, this.userId = _arg.userId;
+      Instance.__super__.constructor.call(this, {
+        client: client
+      });
+    }
+
+    Instance.prototype.baseParams = function() {
+      return Instance.__super__.baseParams.call(this).concat([this.userId]);
+    };
+
+    return Instance;
+
+  })(User);
+
+  _ref1 = 'badges checkins friends lists mayorships photos tips venuehistory'.split(' ');
+  _fn = function(endpoint) {
+    return User.prototype.Instance.prototype[endpoint] = function(data) {
+      return this.get(endpoint, data);
+    };
+  };
+  for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+    method = _ref1[_i];
+    _fn(method);
+  }
 
   module.exports = User;
 
@@ -165,21 +268,16 @@
   Utitlities = (function() {
     function Utitlities() {}
 
-    Utitlities.prototype.hash_params = function() {
-      return this._hash_params || (this._hash_params = this.parse_hash_params(window));
-    };
-
-    Utitlities.prototype.parse_hash_params = function(_window) {
-      var hash_pair, key, params_ary, processed_hash, raw_hash, val, _i, _len, _ref, _ref1;
-      raw_hash = _window.document.location.hash;
-      processed_hash = {};
-      _ref = params_ary = raw_hash.substr(1).split('&');
+    Utitlities.prototype.parseHashString = function(rawHash) {
+      var hashPair, key, paramsAry, processedHash, val, _i, _len, _ref, _ref1;
+      processedHash = {};
+      _ref = paramsAry = rawHash.split('&');
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        hash_pair = _ref[_i];
-        _ref1 = hash_pair.split('='), key = _ref1[0], val = _ref1[1];
-        processed_hash[key] = val;
+        hashPair = _ref[_i];
+        _ref1 = hashPair.split('='), key = _ref1[0], val = _ref1[1];
+        processedHash[key] = val;
       }
-      return processed_hash;
+      return processedHash;
     };
 
     return Utitlities;
@@ -6452,19 +6550,91 @@ var Foursquare = require('../dist/foursquare');
 
 require('chai').should();
 
-describe('foursquare', function() {
-  var client = false;
+describe('Foursquare', function() {
+  var client = false,
+      accessToken = undefined;
 
   before(function() {
-    client = Foursquare('0DCDMFAT3WSO3ZIDHM5XCQWXN1LUILAXORJV10UCLP15QLKU');
+    client = Foursquare({
+      clientId: 'U5VBW3CWRJGH53DZ1KMUZC34VLSFAQ5VK240RNTUQPZ2DW5S',
+      redirectUrl: 'http://localhost:3000/auth',
+      accessToken: accessToken
+    });
   });
 
   after(function() {
     client = false;
   });
 
-  it('should exist', function() {
-    (client instanceof Foursquare.Client).should.be;
+  describe('Foursquare()', function() {
+    it('should exist', function() {
+      (client instanceof Foursquare.Client).should.be;
+    });
+  });
+
+  describe('Client::authenticate', function() {
+    it('can authenticate', function(done) {
+      client.authenticate(function() {
+        client.accessToken.should.be.a('string');
+        client.currentUser.should.be.a('object');
+        accessToken = client.accessToken;
+        done();
+      });
+    });
+  });
+
+  describe('Client::User', function() {
+    it('can retrieve the leaderboard', function() {
+      client.User.leaderboard();
+    });
+  });
+
+  describe('Client::User.new', function() {
+    it("can retrieve the user's checkins", function(done) {
+      client.currentUser.checkins().done(function(rsp) {
+        (rsp.response.checkins.items instanceof Array).should.equal(true);
+        done();
+      });
+    });
+
+    it("can retrieve the user's badges", function(done) {
+      client.currentUser.badges().done(function(rsp) {
+        (rsp.response.badges instanceof Object).should.equal(true);
+        done();
+      });
+    });
+
+    it("can retrieve the user's friends", function(done) {
+      client.currentUser.friends().done(function(rsp) {
+        rsp.response.friends.items.length.should.be.a('number');
+        done();
+      });
+    });
+
+    it("can retrieve the user's lists", function(done) {
+      client.currentUser.lists().done(function(rsp) {
+        rsp.response.lists.groups.length.should.be.a('number');
+        done();
+      });
+    });
+
+    it("can retrieve the user's mayorships", function(done) {
+      client.currentUser.mayorships().done(function(rsp) {
+        rsp.response.mayorships.items.length.should.be.a('number');
+        done();
+      });
+    });
+
+    it("can retrieve the user's photos", function(done) {
+      client.currentUser.photos().done(function(rsp) {
+        rsp.response.photos.items.length.should.be.a('number');
+        done();
+      });
+    });
+  });
+
+  describe('done', function() {
+    it('is done');
   });
 });
 
@@ -6476,7 +6646,7 @@ describe(Foursquare.User, function() {
 });
 
 },{"../../dist/foursquare":1}],43:[function(require,module,exports){
-var global=self;var Utilities = require('../../dist/foursquare/utilities');
+var Utilities = require('../../dist/foursquare/utilities');
 
 if (typeof chai === 'undefined') { var chai = require('chai'); }
 chai.should();
@@ -6489,15 +6659,15 @@ describe(Utilities, function() {
   after(function() {
     utilities = false;
   });
-  describe('#hash_params', function() {
+  describe('#parseHashString', function() {
+    var hash;
     before(function() {
-      if (!  global.document) { global.document = {}; }
-      if (! global.document.location) { global.document.location = {}; }
-      hash = global.document.location.hash;
-      global.document.location.hash = hash === '' ? '#param=something' : hash;
+      hash = 'param=something&blah=booo';
     });
     it('processes the hash', function() {
-      utilities.hash_params().param.should.equal('something');
+      var params = utilities.parseHashString(hash);
+      params.param.should.equal('something');
+      params.blah.should.equal('booo');
     });
   });
 });

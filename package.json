@@ -4,7 +4,7 @@
   "description": "The best gosh darn Foursquare JavaScript Client",
   "main": "src/foursquare.coffee",
   "dependencies": {
-    "mocha": "*",
+    "mocha": "1.9.0",
     "chai": "*",
     "grunt": "*",
     "grunt-contrib-watch": "*",
@@ -21,7 +21,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "benastan/foursquare-component"
+    "url": "benastan/foursquare-javascript-client"
   },
   "keywords": [
     "foursquare",
