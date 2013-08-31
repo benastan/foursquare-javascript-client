@@ -8,7 +8,7 @@ One chill JavaScript client for using Foursquare's API.
 Set up your client:
 
     var clientId = "Your-Client-Id" # From your app at https://foursquare.com/developers/apps,
-        client = Foursquare(clientId); # returns new Foursquare.Client 
+        client = Foursquare(clientId: clientId); # returns new Foursquare.Client 
       
 # Authorization
 
