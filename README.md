@@ -18,30 +18,31 @@ To get authorization:
     # User is now authorized, client has `currentUser` property.
   });
 
-## Endpoint Wrappers
+# Endpoint Wrappers
 
 All endpoint wrappers return a jQuery Promise object.
 
-# User Object
+## User
 
 For most of the following methods, you must first authorize the user.
 
-## Current User's leaderboard
+### Current User's leaderboard
 
   client.User.leaderboard().done(function(rsp) {
     var leaderboard = rsp.response.items;
   });
   
-## Current User's requests
+### Current User's requests
 
   client.User.requests().done(function(rsp) {
     var requests = rsp.response.items;
   });
   
-## Search Users
+### Search Users
 
   client.User.search({
     name: "Ben Bergstein"
   }).done(function(rsp) {
     results = rsp.response.items;
   });
+
