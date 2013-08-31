@@ -8,12 +8,6 @@
       this.attributes = {};
     }
 
-    Base.prototype.get = function() {
-      var urlArgs;
-      urlArgs = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-      return this.perform.apply(this, ['get'].concat(urlArgs));
-    };
-
     Base.prototype["new"] = function(attributes) {
       attributes || (attributes = {});
       attributes.client = this.client;
@@ -51,15 +45,31 @@
       return this.perform.apply(this, ['post'].concat(urlArgs));
     };
 
+    Base.prototype.get = function() {
+      var urlArgs;
+      urlArgs = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      return this.perform.apply(this, ['get'].concat(urlArgs));
+    };
+
     Base.prototype.url = function() {
       var args;
       args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
       return "" + (['https:/', 'api.foursquare.com', 'v2'].concat(args).join('/')) + "?oauth_token=" + this.client.accessToken;
     };
 
+    Base.prototype.Builder = require('./builder');
+
     return Base;
 
   })();
+
+  Base.endpoints = function(cb) {
+    var builder;
+    builder = new this.prototype.Builder({
+      "class": this
+    });
+    return cb.apply(builder);
+  };
 
   module.exports = Base;
 

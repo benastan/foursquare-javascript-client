@@ -18,7 +18,7 @@
 
 }).call(this);
 
-},{"./foursquare/client":4,"./foursquare/utilities":6}],2:[function(require,module,exports){
+},{"./foursquare/client":5,"./foursquare/utilities":7}],2:[function(require,module,exports){
 (function() {
   var Authentication, Timeout, authenticationWindow;
 
@@ -91,12 +91,6 @@
       this.attributes = {};
     }
 
-    Base.prototype.get = function() {
-      var urlArgs;
-      urlArgs = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-      return this.perform.apply(this, ['get'].concat(urlArgs));
-    };
-
     Base.prototype["new"] = function(attributes) {
       attributes || (attributes = {});
       attributes.client = this.client;
@@ -134,21 +128,104 @@
       return this.perform.apply(this, ['post'].concat(urlArgs));
     };
 
+    Base.prototype.get = function() {
+      var urlArgs;
+      urlArgs = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      return this.perform.apply(this, ['get'].concat(urlArgs));
+    };
+
     Base.prototype.url = function() {
       var args;
       args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
       return "" + (['https:/', 'api.foursquare.com', 'v2'].concat(args).join('/')) + "?oauth_token=" + this.client.accessToken;
     };
 
+    Base.prototype.Builder = require('./builder');
+
     return Base;
 
   })();
+
+  Base.endpoints = function(cb) {
+    var builder;
+    builder = new this.prototype.Builder({
+      "class": this
+    });
+    return cb.apply(builder);
+  };
 
   module.exports = Base;
 
 }).call(this);
 
-},{}],4:[function(require,module,exports){
+},{"./builder":4}],4:[function(require,module,exports){
+(function() {
+  var Builder,
+    __slice = [].slice;
+
+  Builder = (function() {
+    function Builder(_arg) {
+      this["class"] = _arg["class"];
+    }
+
+    Builder.prototype.base = function() {
+      var baseParams;
+      baseParams = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      if (typeof baseParams[0] === 'function') {
+        baseParams = baseParams[0];
+      } else {
+        baseParams = function() {
+          return baseParams;
+        };
+      }
+      if (typeof this["class"].prototype.baseParams === 'function') {
+        (function(superBase, subBase) {
+          return baseParams = function() {
+            while (typeof superBase === 'function') {
+              superBase = superBase.apply(this);
+            }
+            return superBase.concat(subBase.apply(this));
+          };
+        })(this["class"].prototype.baseParams, baseParams);
+      }
+      return this["class"].prototype.baseParams = baseParams;
+    };
+
+    Builder.prototype.get = function() {
+      var arg, args, _i, _len, _results;
+      args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      _results = [];
+      for (_i = 0, _len = args.length; _i < _len; _i++) {
+        arg = args[_i];
+        _results.push(this["class"].prototype[arg] = function(data) {
+          return this.get(arg, data);
+        });
+      }
+      return _results;
+    };
+
+    Builder.prototype.post = function() {
+      var arg, args, _i, _len, _results;
+      args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      _results = [];
+      for (_i = 0, _len = args.length; _i < _len; _i++) {
+        arg = args[_i];
+        _results.push(this["class"].prototype[arg] = function(data) {
+          return this.post(arg, data);
+        });
+      }
+      return _results;
+    };
+
+    return Builder;
+
+  })();
+
+  module.exports = Builder;
+
+}).call(this);
+
+},{}],5:[function(require,module,exports){
 (function() {
   var Client, User, Utilities;
 
@@ -191,9 +268,9 @@
 
 }).call(this);
 
-},{"./authentication":2,"./user":5,"./utilities":6}],5:[function(require,module,exports){
+},{"./authentication":2,"./user":6,"./utilities":7}],6:[function(require,module,exports){
 (function() {
-  var Base, User, method, _fn, _i, _len, _ref, _ref1,
+  var Base, User, _ref,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -207,25 +284,14 @@
       return _ref;
     }
 
-    User.prototype.baseParams = function() {
-      return ['users'];
-    };
-
-    User.prototype.leaderboard = function() {
-      return this.get('leaderboard');
-    };
-
-    User.prototype.requests = function() {
-      return this.get('requests');
-    };
-
-    User.prototype.search = function(data) {
-      return this.get('search', data);
-    };
-
     return User;
 
   })(Base);
+
+  User.endpoints(function() {
+    this.base('users');
+    return this.get(['leaderboard', 'requests', 'search']);
+  });
 
   User.prototype.Instance = (function(_super) {
     __extends(Instance, _super);
@@ -238,30 +304,25 @@
       });
     }
 
-    Instance.prototype.baseParams = function() {
-      return Instance.__super__.baseParams.call(this).concat([this.userId]);
+    Instance.prototype.update = function() {
+      throw new Error('User#update not yet implemented');
     };
 
     return Instance;
 
   })(User);
 
-  _ref1 = 'badges checkins friends lists mayorships photos tips venuehistory'.split(' ');
-  _fn = function(endpoint) {
-    return User.prototype.Instance.prototype[endpoint] = function(data) {
-      return this.get(endpoint, data);
-    };
-  };
-  for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-    method = _ref1[_i];
-    _fn(method);
-  }
+  User.prototype.Instance.endpoints(function() {
+    this.base([this.userId]);
+    this.get(['badges', 'checkins', 'friends', 'lists', 'mayorships', 'photos', 'tips', 'venuehistory']);
+    return this.post(['approve', 'deny', 'request', 'setpings', 'unfriend']);
+  });
 
   module.exports = User;
 
 }).call(this);
 
-},{"./base":3}],6:[function(require,module,exports){
+},{"./base":3}],7:[function(require,module,exports){
 (function() {
   var Utitlities;
 

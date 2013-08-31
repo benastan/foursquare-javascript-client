@@ -4,10 +4,6 @@ class Base
 
     @attributes = {}
 
-  get: (urlArgs...) ->
-
-    @perform.apply(@, ['get'].concat(urlArgs))
-
   new: (attributes) ->
 
     attributes ||= {}
@@ -37,8 +33,19 @@ class Base
 
     @perform.apply(@, ['post'].concat(urlArgs))
 
+  get: (urlArgs...) ->
+
+    @perform.apply(@, ['get'].concat(urlArgs))
+
   url: (args...) ->
 
     "#{[ 'https:/', 'api.foursquare.com', 'v2' ].concat(args).join('/')}?oauth_token=#{@client.accessToken}"
+
+  Builder: require('./builder')
+
+Base.endpoints = (cb) ->
+
+  builder = new @::Builder(class: @)
+  cb.apply(builder)
 
 module.exports = Base

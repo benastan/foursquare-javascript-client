@@ -2,7 +2,7 @@
   "name": "foursquare",
   "version": "0.0.0",
   "description": "The best gosh darn Foursquare JavaScript Client",
-  "main": "src/foursquare.coffee",
+  "main": "dist/foursquare.js",
   "dependencies": {
     "mocha": "1.9.0",
     "chai": "*",

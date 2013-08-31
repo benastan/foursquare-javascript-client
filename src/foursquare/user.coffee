@@ -2,15 +2,17 @@ Base = require './base'
 
 class User extends Base
 
-  baseParams: ->
+User.endpoints ->
 
-    [ 'users' ]
+  @base 'users'
 
-  leaderboard: -> @get('leaderboard')
+  @get [
 
-  requests: -> @get('requests')
+    'leaderboard'
+    'requests'
+    'search'
 
-  search: (data) -> @get('search', data)
+  ]
 
 class User::Instance extends User
 
@@ -18,11 +20,33 @@ class User::Instance extends User
 
     super(client: client)
 
-  baseParams: ->
+  update: -> throw new Error('User#update not yet implemented')
 
-    super().concat([ @userId ])
+User::Instance.endpoints ->
 
-for method in 'badges checkins friends lists mayorships photos tips venuehistory'.split(' ')
-  ((endpoint) -> User::Instance.prototype[endpoint] = (data) -> @get(endpoint, data))(method)
+  @base [ @userId ]
+
+  @get [
+
+    'badges'
+    'checkins'
+    'friends'
+    'lists'
+    'mayorships'
+    'photos'
+    'tips'
+    'venuehistory'
+
+  ]
+
+  @post [
+
+    'approve'
+    'deny'
+    'request'
+    'setpings'
+    'unfriend'
+
+  ]
 
 module.exports = User
